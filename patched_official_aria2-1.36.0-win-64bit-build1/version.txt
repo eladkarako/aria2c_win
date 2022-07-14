@@ -1,0 +1,25 @@
+aria2 version 1.36.0
+Copyright (C) 2006, 2019 Tatsuhiro Tsujikawa
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+** Configuration **
+Enabled Features: Async DNS, BitTorrent, Firefox3 Cookie, GZip, HTTPS, Message Digest, Metalink, XML-RPC, SFTP
+Hash Algorithms: sha-1, sha-224, sha-256, sha-384, sha-512, md5, adler32
+Libraries: zlib/1.2.11 expat/2.4.1 sqlite3/3.36.0 GMP/6.2.1 c-ares/1.17.2 libssh2/1.9.0
+Compiler: mingw-w64 8.0.0 (alpha) / gcc 10-win32 20210110
+  built by  x86_64-pc-linux-gnu
+  targeting x86_64-w64-mingw32
+  on        Aug 21 2021 17:37:16
+System: Windows Vista (x86_64) (10.0)
+
+Report bugs to https://github.com/aria2/aria2/issues
+Visit https://aria2.github.io/
