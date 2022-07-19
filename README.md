@@ -60,14 +60,88 @@ System: Windows Vista (x86_64) (10.0)
 
 
 0. download https://github.com/eladkarako/aria2c_win/archive/refs/heads/master.zip
-1. get x64 version of the 2048-threads.
+1. get x64 version (official or "2048-threads").
 2. replace your old `aria2c.exe` with this one.
 3. optional - copy all files from `additions` to the same folder.
 4. optional - download https://curl.se/ca/cacert.pem to be used with `--ca-certificate=`.
 5. optional - add the folder to the system `PATH` to run `aria2c` from everywhere. you can run `where aria2c` to figure out if it is already in the system `PATH`.
 
+- "2048-thread" uses a very small value of `--min-split-size` by default, it sometimes causes websites to send incorrect partial-content (HTTP 206), you are advised to normalize it with `--min-split-size=5M`.
+- normally you'll be limited to `--max-connection-per-server=16` and `--max-concurrent-downloads=32` as the maximum values, but with "2048-thread" you can set it to larger values.  
 
-<details><summary>notes</summary>
+Windows normally won't let you open too much connections as a protection in case your computer have turned into a bot by a worm or a malicious software. you can override it, or revert it back, using registry modifications.
+
+to revert:  
+
+```reg
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\Tcpip\Parameters]
+"TcpNumConnections"=-
+"TcpMaxHalfOpen"=-
+"TcpMaxHalfOpenRetried"=-
+"TcpMaxPortsExhausted"=-
+"SynAttackProtect"=-
+
+;TcpNumConnections
+;   maximum number of connections that TCP can have open simultaneously.
+;   default:     not there (not "0"!!!)
+;   limits:      0-16777214  or  0-FFFFFE
+;   good value:  500         or  1F4
+;   https://technet.microsoft.com/en-us/library/cc938216.aspx
+
+;TcpMaxHalfOpen
+;   maintain in the half-open (SYN-RCVD) state before TCP/IP initiates SYN flooding attack protection 
+;   default:    Windows NT Server: 0x64 ( 100 ) Windows NT Workstation: 0x1F4 ( 500 )
+;   limits:     0x64–0xFFFF ( connections )     100 or 65535
+;   good value: 1500 or 5DC
+;   https://technet.microsoft.com/en-us/library/cc938212.aspx
+
+;TcpMaxHalfOpenRetried
+;   limit        0x50 ( 80 )–0xFFFF
+;   default      Windows NT Server: 0x50 ( 80 ) Windows NT Workstation: 0x190 ( 400 )
+;   good value:  1000 or 3E8
+;   https://technet.microsoft.com/en-us/library/cc938213.aspx
+
+;TcpMaxPortsExhausted
+;   limits:      0-65535  or  0x0–0xFFFF
+;   default:     5        or  0x5
+;   good value:  2000     or  7D0
+;   https://technet.microsoft.com/en-us/library/cc938214.aspx
+
+;SynAttackProtect
+;   default 0
+;   should be kept 0
+;   https://technet.microsoft.com/en-us/library/cc938202.aspx
+```
+
+this is quite suitable:  
+
+```reg
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\Tcpip\Parameters]
+"TcpNumConnections"=dword:000001f4
+"TcpMaxHalfOpen"=dword:000005dc
+"TcpMaxHalfOpenRetried"=dword:000003e8
+"TcpMaxPortsExhausted"=dword:000007d0
+"SynAttackProtect"=dword:00000000
+```
+
+this is extreme, useful for file-sharing:  
+
+```reg
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\Tcpip\Parameters]
+"TcpNumConnections"=dword:000007d0
+"TcpMaxHalfOpen"=dword:00000fa0
+"TcpMaxHalfOpenRetried"=dword:00000bb8
+"TcpMaxPortsExhausted"=dword:00001388
+"SynAttackProtect"=dword:00000000
+```
+
+<hr/>
 
 using `aria2c.cmd` instead of `aria2c.exe`,  
 or simply calling `aria2c` from that folder will call implicitly to `aria2c.cmd` that's how Windows works.  
@@ -89,5 +163,64 @@ the code is the same as the the release links specified above.
 - the manifest allow the exe to use newly efficient segmented heap.
 - the manifest allows long file path support, but you also need a registy patch to activate it in Windows. Google it.
 
-</details>
+<hr/>
 
+this is a batch-file that resets and cleans and solves some connection problems:  
+
+```cmd
+@echo on
+::-------------------------------------------------------------------Firewall Reset (firewall works on XP,7,8+, advfirewall work on 7,8+)
+netsh firewall reset
+netsh advfirewall reset
+
+::-------------------------------------------------------------------Disable Firewall (firewall works on XP,7,8+, advfirewall work on 7,8+)
+netsh firewall set opmode mode=DISABLE profile=ALL
+netsh advfirewall set allprofiles state off
+
+::-------------------------------------------------------------------delete http cache
+netsh nap reset
+netsh rpc reset
+netsh winhttp reset
+netsh http flush
+netsh http delete timeout timeouttype=idleconnectiontimeout
+netsh http delete timeout timeouttype=headerwaittimeout
+
+::-------------------------------------------------------------------make connection direct
+netsh winhttp reset proxy
+
+::-------------------------------------------------------------------disable tracing (default = disabled, ansi, 65535)
+netsh winhttp reset tracing
+
+::-------------------------------------------------------------------delete http cache
+
+netsh http delete cache
+
+::-------------------------------------------------------------------BranchCache Optimize WAN traffic (Windows Server 2008 R2 and Windows® 7)
+netsh branchcache reset
+
+::-------------------------------------------------------------------Routing Lists Clear
+netsh routing reset
+
+::-------------------------------------------------------------------Network-Adapter’s Software Default (Winsock Reset and Rebuild)
+netsh winsock reset
+
+::-------------------------------------------------------------------BranchCache is a new feature of Windows Server 2008 R2 and Windows® 7. BranchCache 
+netsh interface ipv4 reset
+netsh interface ipv6 reset
+
+::-------------------------------------------------------------------Network-Interfaces Reset
+netsh interface reset all
+
+netsh interface httpstunnel reset
+
+
+::-------------------------------------------------------------------Hardcore TCP/IP Reset and Rebuild
+netsh int ip reset c:\temp\netsh_ip_reset_log.txt
+
+
+
+pause
+```
+
+after that re-run the reg-file,  
+and reset the machine.
